@@ -2,7 +2,7 @@ package activities
 
 import (
     "context"
-    "mass-device-config/pkg/models"
+    "dm-backend/pkg/models"
     "fmt"
 )
 
