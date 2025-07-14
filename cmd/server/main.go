@@ -1,42 +1,42 @@
 package main
 
 import (
-    "log"
-    "os"
-    "dm-backend/internal/api"
-    "dm-backend/internal/workflow"
-    "go.temporal.io/sdk/client"
-    "go.temporal.io/sdk/worker"
+	"dm-backend/internal/activities"
+	"dm-backend/internal/api"
+	"dm-backend/internal/config"
+	"dm-backend/internal/workflow"
+	"log"
+
+	"go.temporal.io/sdk/client"
+	"go.temporal.io/sdk/worker"
 )
 
 func main() {
-    // Read Temporal endpoint from environment variable, default to localhost:7233
-    temporalHostPort := os.Getenv("TEMPORAL_HOSTPORT")
-    if temporalHostPort == "" {
-        temporalHostPort = "localhost:7233"
-        log.Printf("TEMPORAL_HOSTPORT not set, using default: %s", temporalHostPort)
-    } else {
-        log.Printf("Using TEMPORAL_HOSTPORT from environment: %s", temporalHostPort)
-    }
+	cfg := config.LoadConfig()
 
-    c, err := client.NewClient(client.Options{
-        HostPort: temporalHostPort,
-    })
-    if err != nil {
-        log.Fatalln("unable to create Temporal client", err)
-    }
-    defer c.Close()
+	log.Printf("Using TEMPORAL_HOSTPORT from config: %s", cfg.TemporalHost)
 
-    w := worker.New(c, "MASS_DEVICE_CONFIG_TASK_QUEUE", worker.Options{})
-    w.RegisterWorkflow(workflow.MassDeviceConfigWorkflow)
-    // Register activities here...
+	c, err := client.NewClient(client.Options{
+		HostPort: cfg.TemporalHost,
+	})
+	if err != nil {
+		log.Fatalln("unable to create Temporal client", err)
+	}
+	defer c.Close()
 
-    go func() {
-        if err := w.Run(worker.InterruptCh()); err != nil {
-            log.Fatalln("unable to start worker", err)
-        }
-    }()
+	dittoClient := &activities.DittoClient{Host: cfg.DittoHost}
+	activitiesImpl := &activities.Activities{Ditto: dittoClient}
 
-    // Start API server
-    api.RunServer(c)
+	w := worker.New(c, "MASS_DEVICE_CONFIG_TASK_QUEUE", worker.Options{})
+	w.RegisterWorkflow(workflow.MassDeviceConfigWorkflow)
+	w.RegisterActivity(activitiesImpl.FetchDevicesFromDitto)
+
+	go func() {
+		if err := w.Run(worker.InterruptCh()); err != nil {
+			log.Fatalln("unable to start worker", err)
+		}
+	}()
+
+	// Start API server
+	api.RunServer(c)
 }

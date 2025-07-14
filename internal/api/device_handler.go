@@ -2,7 +2,6 @@ package api
 
 import (
 	"dm-backend/internal/workflow"
-	"dm-backend/pkg/models"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -33,8 +32,8 @@ func GetWorkflowStatusHandler(temporalClient client.Client) http.HandlerFunc {
 }
 
 type StartConfigRequest struct {
-	Devices      []models.Device   `json:"devices"`
-	ConfigParams map[string]string `json:"configParams"`
+	RQLQuery     string            `json:"rql_query"`
+	ConfigParams map[string]string `json:"config_params"`
 }
 
 // Returns a handler function that can be registered with http.HandleFunc
@@ -52,7 +51,7 @@ func StartMassDeviceConfigHandler(temporalClient client.Client) http.HandlerFunc
 		}
 
 		params := workflow.ConfigWorkflowParams{
-			Devices:      req.Devices,
+			RQLQuery:     req.RQLQuery,
 			ConfigParams: req.ConfigParams,
 		}
 		options := client.StartWorkflowOptions{

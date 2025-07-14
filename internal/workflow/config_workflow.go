@@ -2,27 +2,35 @@ package workflow
 
 import (
 	"dm-backend/internal/activities"
-	"dm-backend/pkg/models"
+	"dm-backend/internal/models"
 	"time"
 
 	"go.temporal.io/sdk/workflow"
 )
 
 type ConfigWorkflowParams struct {
-	Devices      []models.Device
+	RQLQuery     string
 	ConfigParams map[string]string
 }
 
 func MassDeviceConfigWorkflow(ctx workflow.Context, params ConfigWorkflowParams) error {
-	// Parallel config of devices
-	futures := make([]workflow.Future, len(params.Devices))
-	for i, device := range params.Devices {
-		activityCtx := workflow.WithActivityOptions(ctx, workflow.ActivityOptions{
-			StartToCloseTimeout: time.Minute,
-		})
-		futures[i] = workflow.ExecuteActivity(activityCtx, activities.ConfigureDevice, device, params.ConfigParams)
+	ao := workflow.ActivityOptions{
+		StartToCloseTimeout: time.Minute,
 	}
-	// Wait for all activities
+	ctx = workflow.WithActivityOptions(ctx, ao)
+
+	// Fetch devices from Ditto
+	var devices []models.Device
+	// Use an activity that actually fetches devices, e.g., FetchDevicesActivity
+	if err := workflow.ExecuteActivity(ctx, "FetchDevicesFromDitto", params.RQLQuery).Get(ctx, &devices); err != nil {
+		return err
+	}
+
+	// Parallel config of devices
+	futures := make([]workflow.Future, len(devices))
+	for i, device := range devices {
+		futures[i] = workflow.ExecuteActivity(ctx, activities.ConfigureDevice, device, params.ConfigParams)
+	}
 	for _, f := range futures {
 		if err := f.Get(ctx, nil); err != nil {
 			return err
