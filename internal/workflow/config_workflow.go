@@ -1,7 +1,6 @@
 package workflow
 
 import (
-	"dm-backend/internal/activities"
 	"dm-backend/internal/models"
 	"time"
 
@@ -29,7 +28,7 @@ func MassDeviceConfigWorkflow(ctx workflow.Context, params ConfigWorkflowParams)
 	// Parallel config of devices
 	futures := make([]workflow.Future, len(devices))
 	for i, device := range devices {
-		futures[i] = workflow.ExecuteActivity(ctx, activities.ConfigureDevice, device, params.ConfigParams)
+		futures[i] = workflow.ExecuteActivity(ctx, "ConfigureDevice", device, params.ConfigParams)
 	}
 	for _, f := range futures {
 		if err := f.Get(ctx, nil); err != nil {

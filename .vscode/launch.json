@@ -1,0 +1,18 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run Device Management Backend",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${workspaceFolder}/cmd/server/main.go",
+      "env": {
+        "TEMPORAL_HOSTPORT": "localhost:7233",
+        "DITTO_HOSTPORT": "localhost:8080",
+        "DITTO_USERNAME": "ditto",
+        "DITTO_PASSWORD": "ditto",
+      }
+    }
+  ]
+}

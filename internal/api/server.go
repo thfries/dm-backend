@@ -17,7 +17,7 @@ func RunServer(temporalClient client.Client) {
 	mux.HandleFunc("/api/config/status", GetWorkflowStatusHandler(temporalClient))
 
 	server := &http.Server{
-		Addr:    ":8080",
+		Addr:    ":18080",
 		Handler: mux,
 	}
 
@@ -26,7 +26,7 @@ func RunServer(temporalClient client.Client) {
 	signal.Notify(stop, os.Interrupt)
 
 	go func() {
-		log.Println("Starting HTTP server on :8080")
+		log.Println("Starting HTTP server on :18080")
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("HTTP server error: %v", err)
 		}

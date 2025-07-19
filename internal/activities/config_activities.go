@@ -9,21 +9,26 @@ import (
 	"net/http"
 )
 
-func ConfigureDevice(ctx context.Context, device models.Device, configParams map[string]string) error {
-	url := fmt.Sprintf("https://<ditto-host>/api/2/things/%s", device.ID)
-	payload, _ := json.Marshal(map[string]interface{}{
-		"attributes": configParams,
-	})
-	req, _ := http.NewRequest("PUT", url, bytes.NewBuffer(payload))
-	req.Header.Set("Content-Type", "application/json")
-	// Add authentication headers if needed
+func (c *DittoClient) ConfigureDevice(ctx context.Context, device models.Device, configParams map[string]string) error {
+	url := fmt.Sprintf("http://%s/api/2/things/%s/attributes", c.Host, device.ThingId)
+	payload, _ := json.Marshal(configParams)
+	req, _ := http.NewRequest("PATCH", url, bytes.NewBuffer(payload))
+	req.Header.Set("Content-Type", "application/merge-patch+json")
+
+	req.SetBasicAuth(c.Username, c.Password)
+
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("Ditto PUT failed: %s", resp.Status)
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
+		return fmt.Errorf("ditto HTTP call failed: %s", resp.Status)
 	}
 	return nil
+}
+
+// Wrap Activities.ConfigureDevice to use DittoClient
+func (a *Activities) ConfigureDevice(ctx context.Context, device models.Device, configParams map[string]string) error {
+	return a.DittoClient.ConfigureDevice(ctx, device, configParams)
 }

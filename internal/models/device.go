@@ -1,7 +1,7 @@
 package models
 
 type Device struct {
-    ID     string
-    Name   string
-    Status string
+	ThingId  string `json:"thingId"`
+	PolicyId string `json:"policyId"`
+	// attributes string
 }

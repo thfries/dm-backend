@@ -24,12 +24,13 @@ func main() {
 	}
 	defer c.Close()
 
-	dittoClient := &activities.DittoClient{Host: cfg.DittoHost}
-	activitiesImpl := &activities.Activities{Ditto: dittoClient}
+	dittoClient := &activities.DittoClient{Host: cfg.DittoHost, Username: cfg.DittoUsername, Password: cfg.DittoPassword}
+	activitiesImpl := &activities.Activities{DittoClient: dittoClient}
 
 	w := worker.New(c, "MASS_DEVICE_CONFIG_TASK_QUEUE", worker.Options{})
 	w.RegisterWorkflow(workflow.MassDeviceConfigWorkflow)
 	w.RegisterActivity(activitiesImpl.FetchDevicesFromDitto)
+	w.RegisterActivity(activitiesImpl.ConfigureDevice)
 
 	go func() {
 		if err := w.Run(worker.InterruptCh()); err != nil {

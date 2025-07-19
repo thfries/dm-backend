@@ -1,4 +1,4 @@
-# Device Management Service
+# Device Management Backend
 
 This project demonstrates a horizontally scalable backend service in Go, using [Temporal](https://temporal.io/) for robust workflow orchestration. It is designed to support mass device configuration tasks, suitable for deployment on Kubernetes, and provides rapid local development and testing cycles.
 
@@ -30,33 +30,42 @@ dm-backend/
 
 1. **Start a Temporal server** (see [Temporal Docker Compose](https://docs.temporal.io/v1.0/docs/server/docker-compose/)).
    
-2. **Temporal Server Configuration**
+2. **Set Required Environment Variables**
 
-By default, the service connects to Temporal at `localhost:7233` for development.
-
-To override, set the `TEMPORAL_HOSTPORT` environment variable:
+You must set the Temporal host/port before running the service:
 
 ```bash
 export TEMPORAL_HOSTPORT="temporal.example.com:7233"
-go run cmd/server/main.go
 ```
 
-If `TEMPORAL_HOSTPORT` is not set, the service will use `localhost:7233`.
+If your service integrates with a Ditto server, set the Ditto host/port as well (replace with your Ditto host/port as needed):
+
+```bash
+export DITTO_HOSTPORT="ditto.example.com:8080"
+```
 
 3. **Run the worker and API server:**
    ```bash
    go run cmd/server/main.go
    ```
+
+If `TEMPORAL_HOSTPORT` is not set, the service will fail to start.
+
 4. **Test API endpoints:**
    - Start a workflow:
      ```bash
-     curl -X POST http://localhost:8080/api/config/start \
+     curl -X POST http://localhost:18080/api/config/start \
        -H "Content-Type: application/json" \
-       -d '{"devices":[{"ID":"dev1","Name":"Device 1"}],"configParams":{"mode":"fast"}}'
+       -d '{
+         "rql_query": "eq(attributes/type,\"gateway\")",
+         "config_params": {
+           "mode": "fast"
+         }
+       }'
      ```
    - Check workflow status:
      ```bash
-     curl "http://localhost:8080/api/config/status?workflowID=<workflowID>&runID=<runID>"
+     curl "http://localhost:18080/api/config/status?workflowID=<workflowID>&runID=<runID>"
      ```
 
 ## Testing

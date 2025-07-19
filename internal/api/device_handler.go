@@ -45,8 +45,11 @@ func StartMassDeviceConfigHandler(temporalClient client.Client) http.HandlerFunc
 		}
 
 		var req StartConfigRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "Invalid request body", http.StatusBadRequest)
+		defer r.Body.Close()
+		decoder := json.NewDecoder(r.Body)
+		decoder.DisallowUnknownFields()
+		if err := decoder.Decode(&req); err != nil {
+			http.Error(w, "Invalid request body: "+err.Error(), http.StatusBadRequest)
 			return
 		}
 

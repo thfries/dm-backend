@@ -9,35 +9,37 @@ import (
 	"net/http"
 )
 
-type DittoClient struct {
-	Host string
-}
-
 func (c *DittoClient) FetchDevicesFromDitto(rqlQuery string) ([]models.Device, error) {
-	url := fmt.Sprintf("https://%s/api/2/search/things?filter=%s", c.Host, rqlQuery)
+	url := fmt.Sprintf("http://%s/api/2/search/things?filter=%s", c.Host, rqlQuery)
 	req, _ := http.NewRequest("GET", url, nil)
-	// Add authentication headers if needed
+
+	req.SetBasicAuth(c.Username, c.Password)
+
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("HTTP request failed: %w", err)
 	}
 	defer resp.Body.Close()
-	body, _ := io.ReadAll(resp.Body)
-	var result struct {
-		Things []models.Device `json:"things"`
-	}
-	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, err
-	}
-	return result.Things, nil
-}
 
-type Activities struct {
-	Ditto *DittoClient
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("ditto API returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	body, _ := io.ReadAll(resp.Body)
+
+	type Result struct {
+		Items []models.Device `json:"items"`
+	}
+	var res Result
+
+	if err := json.Unmarshal(body, &res); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal quoted JSON string: %w", err)
+	}
+
+	return res.Items, nil
 }
 
 func (a *Activities) FetchDevicesFromDitto(ctx context.Context, rqlQuery string) ([]models.Device, error) {
-	return a.Ditto.FetchDevicesFromDitto(rqlQuery)
+	return a.DittoClient.FetchDevicesFromDitto(rqlQuery)
 }
-
-// Similarly, wrap ConfigureDevice if it needs DittoClient
