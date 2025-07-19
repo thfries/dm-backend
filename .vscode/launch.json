@@ -12,6 +12,18 @@
         "DITTO_HOSTPORT": "localhost:8080",
         "DITTO_USERNAME": "ditto",
         "DITTO_PASSWORD": "ditto",
+        "DITTO_DEVOPS_USERNAME": "devops",
+        "DITTO_DEVOPS_PASSWORD": "foobar", 
+      }
+    },
+    {
+      "name": "Debug Ditto Integration Test",
+      "type": "go",
+      "request": "launch",
+      "mode": "test",
+      "program": "${workspaceFolder}/internal/activities",
+      "env": {
+        "DITTO_INTEGRATION": "1"
       }
     }
   ]

@@ -31,6 +31,7 @@ func main() {
 	w.RegisterWorkflow(workflow.MassDeviceConfigWorkflow)
 	w.RegisterActivity(activitiesImpl.FetchDevicesFromDitto)
 	w.RegisterActivity(activitiesImpl.ConfigureDevice)
+	w.RegisterActivity(activitiesImpl.CreateConnection)
 
 	go func() {
 		if err := w.Run(worker.InterruptCh()); err != nil {

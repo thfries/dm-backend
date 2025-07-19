@@ -1,0 +1,30 @@
+{
+  "name": "{{.ConnectionName}}",
+  "connectionType": "mqtt-5",
+  "connectionStatus": "closed",
+  "failoverEnabled": true,
+  "uri": "tcp://{{.MQTTHost}}:{{.MQTTPort}}",
+  "sources": [
+    {
+      "addresses": [
+        "eclipse-ditto-sandbox/#"
+      ],
+      "authorizationContext": [
+        "ditto:inbound-auth-subject"
+      ],
+      "qos": 0
+    }
+  ],
+  "targets": [
+    {
+      "address": "eclipse-ditto-sandbox/test",
+      "topics": [
+        "_/_/things/twin/events"
+      ],
+      "authorizationContext": [
+        "ditto:outbound-auth-subject"
+      ],
+      "qos": 0
+    }
+  ]
+}
