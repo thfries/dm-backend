@@ -1,6 +1,7 @@
 package activities
 
 import (
+	"bytes"
 	"context"
 	"dm-backend/internal/models"
 	"encoding/json"
@@ -42,4 +43,88 @@ func (c *DittoClient) FetchDevicesFromDitto(rqlQuery string) ([]models.Device, e
 
 func (a *Activities) FetchDevicesFromDitto(ctx context.Context, rqlQuery string) ([]models.Device, error) {
 	return a.DittoClient.FetchDevicesFromDitto(rqlQuery)
+}
+
+type CreateThingParams struct {
+	Namespace            string
+	UniqueAttributeKey   string
+	UniqueAttributeValue string
+}
+
+func (c *DittoClient) CreateThing(params CreateThingParams) (string, error) {
+	// 1. Search for existing thing with the unique attribute
+	rql := fmt.Sprintf(`eq(attributes/%s,"%s")`, params.UniqueAttributeKey, params.UniqueAttributeValue)
+	searchURL := fmt.Sprintf("http://%s/api/2/search/things?filter=%s", c.Host, rql)
+	searchReq, err := http.NewRequest("GET", searchURL, nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to create search request: %w", err)
+	}
+	searchReq.SetBasicAuth(c.Username, c.Password)
+	searchResp, err := http.DefaultClient.Do(searchReq)
+	if err != nil {
+		return "", fmt.Errorf("search HTTP request failed: %w", err)
+	}
+	defer searchResp.Body.Close()
+	if searchResp.StatusCode < 200 || searchResp.StatusCode >= 300 {
+		body, _ := io.ReadAll(searchResp.Body)
+		return "", fmt.Errorf("ditto search API returned status %d: %s", searchResp.StatusCode, string(body))
+	}
+	var searchResult struct {
+		Items []struct {
+			ThingID string `json:"thingId"`
+		} `json:"items"`
+	}
+	if err := json.NewDecoder(searchResp.Body).Decode(&searchResult); err != nil {
+		return "", fmt.Errorf("failed to decode search response: %w", err)
+	}
+	if len(searchResult.Items) > 0 {
+		return "", fmt.Errorf("thing with %s=%s already exists", params.UniqueAttributeKey, params.UniqueAttributeValue)
+	}
+
+	// 2. Create the new thing with the unique attribute
+	// url := fmt.Sprintf("http://%s/api/2/things?namespace=%s", c.Host, params.Namespace)
+	url := fmt.Sprintf("http://%s/api/2/things?namespace=%s&requested-acks=twin-persisted,search-persisted&timeout=10", c.Host, params.Namespace)
+	thingBody := map[string]interface{}{
+		"attributes": map[string]interface{}{
+			params.UniqueAttributeKey: params.UniqueAttributeValue,
+		},
+	}
+	bodyBytes, err := json.Marshal(thingBody)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal thing body: %w", err)
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(bodyBytes))
+	if err != nil {
+		return "", fmt.Errorf("failed to create HTTP request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.SetBasicAuth(c.Username, c.Password)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("HTTP request failed: %w", err)
+	}
+	defer resp.Body.Close()
+	respBody, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return "", fmt.Errorf("ditto API returned status %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	// Parse the returned thingId from Ditto's response
+	var result struct {
+		TwinPersisted struct {
+			Payload struct {
+				ThingID string `json:"thingId"`
+			} `json:"payload"`
+		} `json:"twin-persisted"`
+	}
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return "", fmt.Errorf("failed to parse response JSON: %w", err)
+	}
+	return result.TwinPersisted.Payload.ThingID, nil
+}
+
+func (a *Activities) CreateThing(ctx context.Context, params CreateThingParams) (string, error) {
+	return a.DittoClient.CreateThing(params)
 }

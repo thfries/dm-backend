@@ -32,6 +32,7 @@ func main() {
 	w.RegisterActivity(activitiesImpl.FetchDevicesFromDitto)
 	w.RegisterActivity(activitiesImpl.ConfigureDevice)
 	w.RegisterActivity(activitiesImpl.CreateConnection)
+	w.RegisterActivity(activitiesImpl.GetConnectionStatus)
 
 	go func() {
 		if err := w.Run(worker.InterruptCh()); err != nil {

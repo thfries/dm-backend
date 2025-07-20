@@ -10,6 +10,7 @@ type AppConfig struct {
 	DittoDevopsUsername string
 	DittoDevopsPassword string
 	DittoPassword       string
+	DittoNamespace      string
 	TemporalHost        string
 }
 
@@ -20,6 +21,7 @@ func LoadConfig() AppConfig {
 		DittoPassword:       os.Getenv("DITTO_PASSWORD"),
 		DittoDevopsUsername: os.Getenv("DITTO_DEVOPS_USERNAME"),
 		DittoDevopsPassword: os.Getenv("DITTO_DEVOPS_PASSWORD"),
+		DittoNamespace:      os.Getenv("DITTO_NAMESPACE"),
 		TemporalHost:        os.Getenv("TEMPORAL_HOSTPORT"),
 	}
 }

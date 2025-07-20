@@ -74,3 +74,41 @@ func (c *DittoClient) CreateConnection(ctx context.Context, params CreateConnect
 func (a *Activities) CreateConnection(ctx context.Context, params CreateConnectionParams) (string, error) {
 	return a.DittoClient.CreateConnection(ctx, params)
 }
+
+type GetConnectionStatusParams struct {
+	ConnectionID string
+}
+
+type GetConnectionStatusResult struct {
+	LiveStatus string `json:"liveStatus"`
+}
+
+func (c *DittoClient) GetConnectionStatus(ctx context.Context, params GetConnectionStatusParams) (string, error) {
+	url := fmt.Sprintf("http://%s/api/2/connections/%s/status", c.Host, params.ConnectionID)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to create HTTP request: %w", err)
+	}
+	req.SetBasicAuth(c.Username, c.Password)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("HTTP request failed: %w", err)
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != 200 {
+		return "", fmt.Errorf("ditto API returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	var result GetConnectionStatusResult
+	if err := json.Unmarshal(body, &result); err != nil {
+		return "", fmt.Errorf("failed to parse response JSON: %w", err)
+	}
+	return result.LiveStatus, nil
+}
+
+// Register this activity with your Activities struct:
+func (a *Activities) GetConnectionStatus(ctx context.Context, params GetConnectionStatusParams) (string, error) {
+	return a.DittoClient.GetConnectionStatus(ctx, params)
+}

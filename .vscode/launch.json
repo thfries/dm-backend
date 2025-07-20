@@ -13,8 +13,9 @@
         "DITTO_USERNAME": "ditto",
         "DITTO_PASSWORD": "ditto",
         "DITTO_DEVOPS_USERNAME": "devops",
-        "DITTO_DEVOPS_PASSWORD": "foobar", 
-      }
+        "DITTO_DEVOPS_PASSWORD": "foobar",
+        "DITTO_NAMESPACE": "dmb.localDev",   
+      } 
     },
     {
       "name": "Debug Ditto Integration Test",
@@ -23,7 +24,8 @@
       "mode": "test",
       "program": "${workspaceFolder}/internal/activities",
       "env": {
-        "DITTO_INTEGRATION": "1"
+        "DITTO_INTEGRATION": "1",
+        "DITTO_NAMESPACE": "dmb.localTest",   
       }
     }
   ]

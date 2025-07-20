@@ -124,3 +124,49 @@ func TestCreateConnection_Integration(t *testing.T) {
 		t.Fatalf("expected 200 OK from Ditto GET, got: %s", resp.Status)
 	}
 }
+
+func TestGetConnectionStatus_Integration(t *testing.T) {
+	if os.Getenv("DITTO_INTEGRATION") != "1" {
+		t.Skip("set DITTO_INTEGRATION=1 to run integration tests")
+	}
+
+	dittoHost := testDittoHost
+	username := testDittoDevopsUsername
+	password := testDittoDevopsPassword
+
+	// Ensure the connection exists
+	client := &DittoClient{
+		Host:     dittoHost,
+		Username: username,
+		Password: password,
+	}
+
+	params := CreateConnectionParams{
+		ConnectionName: testConnectionName,
+		TemplateName:   testTemplateName,
+		Placeholders: map[string]string{
+			"ConnectionName": testConnectionName,
+			"MQTTHost":       testMQTTHost,
+			"MQTTPort":       testMQTTPort,
+		},
+	}
+
+	connectionID, err := client.CreateConnection(context.Background(), params)
+	if err != nil {
+		t.Fatalf("CreateConnection failed: %v", err)
+	}
+	defer cleanupDittoConnection(t, dittoHost, username, password, testConnectionName)
+
+	// Now test GetConnectionStatus
+	status, err := client.GetConnectionStatus(context.Background(), GetConnectionStatusParams{
+		ConnectionID: connectionID,
+	})
+	if err != nil {
+		t.Fatalf("GetConnectionStatus failed: %v", err)
+	}
+	if status == "" {
+		t.Error("expected non-empty liveStatus, got empty string")
+	} else {
+		t.Logf("Connection liveStatus: %s", status)
+	}
+}

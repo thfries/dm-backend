@@ -45,6 +45,70 @@ func setupDittoTestData(t *testing.T) {
 	}
 }
 
+func cleanupDittoThing(t *testing.T, thingID string) {
+	url := fmt.Sprintf("http://%s/api/2/things/%s", testDittoHost, thingID)
+	req, err := http.NewRequest("DELETE", url, nil)
+	if err != nil {
+		t.Fatalf("failed to create DELETE request: %v", err)
+	}
+	req.SetBasicAuth(testDittoUsername, testDittoPassword)
+	client := &http.Client{Timeout: 5 * time.Second}
+
+	t.Logf("Cleanup - Deleting thing thingID: %s", thingID)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		t.Fatalf("failed to DELETE thing: %v", err)
+	}
+	defer resp.Body.Close()
+	// Accept 2xx and 404 (already deleted)
+}
+
+func TestCreateThing_Integration(t *testing.T) {
+	if os.Getenv("DITTO_INTEGRATION") != "1" {
+		t.Skip("set DITTO_INTEGRATION=1 to run integration tests")
+	}
+
+	client := &DittoClient{
+		Host:     testDittoHost,
+		Username: testDittoUsername,
+		Password: testDittoPassword,
+	}
+
+	namespace := "app.Config.DittoNamespace"
+	params := CreateThingParams{
+		Namespace:            namespace,
+		UniqueAttributeKey:   "serial",
+		UniqueAttributeValue: fmt.Sprintf("test-%d", time.Now().UnixNano()),
+	}
+
+	// Test successful creation
+	t.Logf("Creating thing with params: %+v", params)
+	thingID, err := client.CreateThing(params)
+	if err != nil {
+		t.Fatalf("CreateThing failed: %v", err)
+	}
+	t.Logf("Created thingID: %s", thingID)
+	defer cleanupDittoThing(t, thingID)
+
+	// Check that the created thingID starts with the namespace
+	if got, want := thingID, params.Namespace+":"; len(got) < len(want) || got[:len(want)] != want {
+		t.Errorf("thingID %q does not start with namespace %q", thingID, params.Namespace)
+	}
+
+	// time.Sleep(10000 * time.Millisecond) // Try increasing if needed
+
+	// Test duplicate creation is avoided
+
+	t.Logf("Try to create duplicate thing with params: %+v", params)
+	_, err = client.CreateThing(params)
+	if err == nil {
+		t.Error("expected error when creating duplicate thing, got nil")
+	} else {
+		t.Logf("duplicate creation correctly failed: %v", err)
+	}
+}
+
 func TestFetchDevicesFromDitto_Integration(t *testing.T) {
 	if os.Getenv("DITTO_INTEGRATION") != "1" {
 		t.Skip("set DITTO_INTEGRATION=1 to run integration tests")
