@@ -14,6 +14,8 @@ type AppConfig struct {
 	TemporalHost        string
 }
 
+const TaskQueue = "MASS_DEVICE_CONFIG_TASK_QUEUE"
+
 func LoadConfig() AppConfig {
 	return AppConfig{
 		DittoHost:           os.Getenv("DITTO_HOSTPORT"),

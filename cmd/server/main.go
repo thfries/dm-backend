@@ -27,13 +27,14 @@ func main() {
 	dittoClient := &activities.DittoClient{Host: cfg.DittoHost, Username: cfg.DittoUsername, Password: cfg.DittoPassword}
 	activitiesImpl := &activities.Activities{DittoClient: dittoClient}
 
-	w := worker.New(c, "MASS_DEVICE_CONFIG_TASK_QUEUE", worker.Options{})
+	w := worker.New(c, config.TaskQueue, worker.Options{})
 	w.RegisterWorkflow(workflow.MassDeviceConfigWorkflow)
+	w.RegisterWorkflow(workflow.CreateSiteWorkflow)
 	w.RegisterActivity(activitiesImpl.FetchDevicesFromDitto)
 	w.RegisterActivity(activitiesImpl.ConfigureDevice)
 	w.RegisterActivity(activitiesImpl.CreateConnection)
 	w.RegisterActivity(activitiesImpl.GetConnectionStatus)
-
+	w.RegisterActivity(activitiesImpl.CreateThing)
 	go func() {
 		if err := w.Run(worker.InterruptCh()); err != nil {
 			log.Fatalln("unable to start worker", err)

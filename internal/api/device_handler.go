@@ -1,6 +1,7 @@
 package api
 
 import (
+	"dm-backend/internal/config"
 	"dm-backend/internal/workflow"
 	"encoding/json"
 	"log"
@@ -58,7 +59,7 @@ func StartMassDeviceConfigHandler(temporalClient client.Client) http.HandlerFunc
 			ConfigParams: req.ConfigParams,
 		}
 		options := client.StartWorkflowOptions{
-			TaskQueue: "MASS_DEVICE_CONFIG_TASK_QUEUE",
+			TaskQueue: config.TaskQueue,
 		}
 
 		workflowRun, err := temporalClient.ExecuteWorkflow(

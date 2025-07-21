@@ -2,6 +2,7 @@ package activities
 
 import (
 	"bytes"
+	"dm-backend/internal/config"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -10,12 +11,12 @@ import (
 	"time"
 )
 
-const (
-	testDittoHost           = "localhost:8080"
-	testDittoUsername       = "ditto"
-	testDittoPassword       = "ditto"
-	testDittoDevopsUsername = "devops"
-	testDittoDevopsPassword = "foobar"
+var (
+	appConfig      = config.LoadConfig()
+	dittoHost      = appConfig.DittoHost
+	dittoUsername  = appConfig.DittoUsername
+	dittoPassword  = appConfig.DittoPassword
+	dittoNamespace = appConfig.DittoNamespace
 )
 
 func setupDittoTestData(t *testing.T) {
@@ -25,13 +26,13 @@ func setupDittoTestData(t *testing.T) {
 	}
 	payload, _ := json.Marshal(thing)
 	req, err := http.NewRequest("PUT",
-		fmt.Sprintf("http://%s/api/2/things/%s", testDittoHost, "org.example:test-thing"),
+		fmt.Sprintf("http://%s/api/2/things/%s", dittoHost, "org.example:test-thing"),
 		bytes.NewBuffer(payload),
 	)
 	if err != nil {
 		t.Fatalf("failed to create request: %v", err)
 	}
-	req.SetBasicAuth(testDittoUsername, testDittoPassword)
+	req.SetBasicAuth(dittoUsername, dittoPassword)
 	req.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{Timeout: 5 * time.Second}
@@ -46,12 +47,12 @@ func setupDittoTestData(t *testing.T) {
 }
 
 func cleanupDittoThing(t *testing.T, thingID string) {
-	url := fmt.Sprintf("http://%s/api/2/things/%s", testDittoHost, thingID)
+	url := fmt.Sprintf("http://%s/api/2/things/%s", dittoHost, thingID)
 	req, err := http.NewRequest("DELETE", url, nil)
 	if err != nil {
 		t.Fatalf("failed to create DELETE request: %v", err)
 	}
-	req.SetBasicAuth(testDittoUsername, testDittoPassword)
+	req.SetBasicAuth(dittoUsername, dittoPassword)
 	client := &http.Client{Timeout: 5 * time.Second}
 
 	t.Logf("Cleanup - Deleting thing thingID: %s", thingID)
@@ -70,16 +71,23 @@ func TestCreateThing_Integration(t *testing.T) {
 	}
 
 	client := &DittoClient{
-		Host:     testDittoHost,
-		Username: testDittoUsername,
-		Password: testDittoPassword,
+		Host:     dittoHost,
+		Username: dittoUsername,
+		Password: dittoPassword,
 	}
 
-	namespace := "app.Config.DittoNamespace"
+	namespace := dittoNamespace
+	serialValue := fmt.Sprintf("test-%d", time.Now().UnixNano())
+	thingData := map[string]interface{}{
+		"attributes": map[string]interface{}{
+			"serial": serialValue,
+			"foo":    "bar", // second attribute
+		},
+	}
 	params := CreateThingParams{
-		Namespace:            namespace,
-		UniqueAttributeKey:   "serial",
-		UniqueAttributeValue: fmt.Sprintf("test-%d", time.Now().UnixNano()),
+		Namespace:          namespace,
+		UniqueAttributeKey: "serial",
+		ThingData:          thingData,
 	}
 
 	// Test successful creation
@@ -96,10 +104,7 @@ func TestCreateThing_Integration(t *testing.T) {
 		t.Errorf("thingID %q does not start with namespace %q", thingID, params.Namespace)
 	}
 
-	// time.Sleep(10000 * time.Millisecond) // Try increasing if needed
-
 	// Test duplicate creation is avoided
-
 	t.Logf("Try to create duplicate thing with params: %+v", params)
 	_, err = client.CreateThing(params)
 	if err == nil {
@@ -117,9 +122,9 @@ func TestFetchDevicesFromDitto_Integration(t *testing.T) {
 	setupDittoTestData(t)
 
 	client := &DittoClient{
-		Host:     testDittoHost,
-		Username: testDittoUsername,
-		Password: testDittoPassword,
+		Host:     dittoHost,
+		Username: dittoUsername,
+		Password: dittoPassword,
 	}
 
 	rql := `eq(thingId,"org.example:test-thing")`

@@ -46,14 +46,24 @@ func (a *Activities) FetchDevicesFromDitto(ctx context.Context, rqlQuery string)
 }
 
 type CreateThingParams struct {
-	Namespace            string
-	UniqueAttributeKey   string
-	UniqueAttributeValue string
+	Namespace          string
+	UniqueAttributeKey string
+	ThingData          map[string]interface{} // full JSON for the new thing
 }
 
 func (c *DittoClient) CreateThing(params CreateThingParams) (string, error) {
-	// 1. Search for existing thing with the unique attribute
-	rql := fmt.Sprintf(`eq(attributes/%s,"%s")`, params.UniqueAttributeKey, params.UniqueAttributeValue)
+	// 1. Check that UniqueAttributeKey is present in ThingData["attributes"]
+	attrs, ok := params.ThingData["attributes"].(map[string]interface{})
+	if !ok {
+		return "", fmt.Errorf("thing data must contain an 'attributes' object")
+	}
+	val, exists := attrs[params.UniqueAttributeKey]
+	if !exists {
+		return "", fmt.Errorf("thing data is missing unique attribute key '%s' in attributes", params.UniqueAttributeKey)
+	}
+
+	// 2. Search for existing thing with the unique attribute value
+	rql := fmt.Sprintf(`eq(attributes/%s,"%v")`, params.UniqueAttributeKey, val)
 	searchURL := fmt.Sprintf("http://%s/api/2/search/things?filter=%s", c.Host, rql)
 	searchReq, err := http.NewRequest("GET", searchURL, nil)
 	if err != nil {
@@ -78,18 +88,12 @@ func (c *DittoClient) CreateThing(params CreateThingParams) (string, error) {
 		return "", fmt.Errorf("failed to decode search response: %w", err)
 	}
 	if len(searchResult.Items) > 0 {
-		return "", fmt.Errorf("thing with %s=%s already exists", params.UniqueAttributeKey, params.UniqueAttributeValue)
+		return "", fmt.Errorf("thing with %s=%v already exists", params.UniqueAttributeKey, val)
 	}
 
-	// 2. Create the new thing with the unique attribute
-	// url := fmt.Sprintf("http://%s/api/2/things?namespace=%s", c.Host, params.Namespace)
+	// 3. Create the new thing with the provided data
 	url := fmt.Sprintf("http://%s/api/2/things?namespace=%s&requested-acks=twin-persisted,search-persisted&timeout=10", c.Host, params.Namespace)
-	thingBody := map[string]interface{}{
-		"attributes": map[string]interface{}{
-			params.UniqueAttributeKey: params.UniqueAttributeValue,
-		},
-	}
-	bodyBytes, err := json.Marshal(thingBody)
+	bodyBytes, err := json.Marshal(params.ThingData)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal thing body: %w", err)
 	}

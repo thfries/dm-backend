@@ -2,6 +2,7 @@ package activities
 
 import (
 	"context"
+	"dm-backend/internal/config"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -78,9 +79,12 @@ func TestCreateConnection_Integration(t *testing.T) {
 		t.Skip("set DITTO_INTEGRATION=1 to run integration tests")
 	}
 
-	dittoHost := testDittoHost
-	username := testDittoDevopsUsername
-	password := testDittoDevopsPassword
+	var (
+		appConfig = config.LoadConfig()
+		dittoHost = appConfig.DittoHost
+		username  = appConfig.DittoDevopsUsername
+		password  = appConfig.DittoDevopsPassword
+	)
 
 	// Clean up before and after test
 	cleanupDittoConnection(t, dittoHost, username, password, testConnectionName)
@@ -130,9 +134,12 @@ func TestGetConnectionStatus_Integration(t *testing.T) {
 		t.Skip("set DITTO_INTEGRATION=1 to run integration tests")
 	}
 
-	dittoHost := testDittoHost
-	username := testDittoDevopsUsername
-	password := testDittoDevopsPassword
+	var (
+		appConfig = config.LoadConfig()
+		dittoHost = appConfig.DittoHost
+		username  = appConfig.DittoDevopsUsername
+		password  = appConfig.DittoDevopsPassword
+	)
 
 	// Ensure the connection exists
 	client := &DittoClient{
