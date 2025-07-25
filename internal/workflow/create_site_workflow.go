@@ -26,7 +26,7 @@ func CreateSiteWorkflow(ctx workflow.Context, params CreateSiteParams) error {
 		RetryPolicy: &temporal.RetryPolicy{
 			InitialInterval:    time.Second,
 			BackoffCoefficient: 2.0,
-			MaximumAttempts:    10,
+			MaximumAttempts:    5,
 		},
 	}
 	ctx = workflow.WithActivityOptions(ctx, ao)

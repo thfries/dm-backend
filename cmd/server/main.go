@@ -24,7 +24,13 @@ func main() {
 	}
 	defer c.Close()
 
-	dittoClient := &activities.DittoClient{Host: cfg.DittoHost, Username: cfg.DittoUsername, Password: cfg.DittoPassword}
+	dittoClient := &activities.DittoClient{
+		Host:           cfg.DittoHost,
+		Username:       cfg.DittoUsername,
+		Password:       cfg.DittoPassword,
+		DevopsUsername: cfg.DittoDevopsUsername,
+		DevopsPassword: cfg.DittoDevopsPassword,
+	}
 	activitiesImpl := &activities.Activities{DittoClient: dittoClient}
 
 	w := worker.New(c, config.TaskQueue, worker.Options{})

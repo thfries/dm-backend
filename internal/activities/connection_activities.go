@@ -49,7 +49,7 @@ func (c *DittoClient) CreateConnection(ctx context.Context, params CreateConnect
 		return "", fmt.Errorf("failed to create HTTP request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.SetBasicAuth(c.Username, c.Password)
+	req.SetBasicAuth(c.DevopsUsername, c.DevopsPassword)
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
