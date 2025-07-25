@@ -52,21 +52,46 @@ export DITTO_HOSTPORT="ditto.example.com:8080"
 If `TEMPORAL_HOSTPORT` is not set, the service will fail to start.
 
 4. **Test API endpoints:**
-   - Start a workflow:
-     ```bash
-     curl -X POST http://localhost:18080/api/config/start \
-       -H "Content-Type: application/json" \
-       -d '{
-         "rql_query": "eq(attributes/type,\"gateway\")",
-         "config_params": {
-           "mode": "fast"
-         }
-       }'
-     ```
-   - Check workflow status:
-     ```bash
-     curl "http://localhost:18080/api/config/status?workflowID=<workflowID>&runID=<runID>"
-     ```
+  - Start a config workflow:
+    ```bash
+    curl -X POST http://localhost:18080/api/config/start \
+      -H "Content-Type: application/json" \
+      -d '{
+        "rql_query": "eq(attributes/type,\"gateway\")",
+        "config_params": {
+          "mode": "fast"
+        }
+      }'
+    ```
+  
+  - Start a Create Sites workflow:
+    ```bash
+    curl -X POST http://localhost:18080/api/sites/create \
+      -H "Content-Type: application/json" \
+      -d '[
+        {
+          "siteName": "site1",
+          "host": "mqtt.example.com",
+          "port": "1883",
+          "username": "user1",
+          "password": "pass1",
+          "description": "Main gateway for site 1"
+        },
+        {
+          "siteName": "site2",
+          "host": "mqtt.example.com",
+          "port": "1884",
+          "username": "user2",
+          "password": "pass2",
+          "description": "Backup gateway for site 2"
+        }
+      ]'
+    ```
+  
+  - Check workflow status:
+    ```bash
+    curl "http://localhost:18080/api/config/status?workflowID=<workflowID>&runID=<runID>"
+    ```
 
 ## Testing
 
@@ -93,6 +118,14 @@ go test ./...
 - Add a `Dockerfile` for containerization.
 - Use Helm charts or Kubernetes manifests to deploy on K8s.
 
+
+### Response
+
+- `202 Accepted` if workflows were started.
+- `400 Bad Request` if the input is not valid JSON.
+- `500 Internal Server Error` if a workflow could not be started.
+
 ---
 
-**Questions or improvements? Open an issue or PR!**
+**Note:**  
+Convert your CSV input to JSON before calling this API. Each object in the array represents one
