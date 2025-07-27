@@ -14,9 +14,6 @@ import (
 //go:embed connection_template_mqtt5.json
 var connectionTemplateMQTT5 string
 
-// go:embed connection_template_another.json
-// var connectionTemplateAnother string
-
 var connectionTemplates = map[string]string{
 	"mqtt5": connectionTemplateMQTT5,
 	// "another": connectionTemplateAnother,
@@ -89,7 +86,7 @@ func (c *DittoClient) GetConnectionStatus(ctx context.Context, params GetConnect
 	if err != nil {
 		return "", fmt.Errorf("failed to create HTTP request: %w", err)
 	}
-	req.SetBasicAuth(c.Username, c.Password)
+	req.SetBasicAuth(c.DevopsUsername, c.DevopsPassword)
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {

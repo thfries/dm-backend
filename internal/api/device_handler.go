@@ -2,6 +2,7 @@ package api
 
 import (
 	"dm-backend/internal/config"
+	"dm-backend/internal/models"
 	"dm-backend/internal/workflow"
 	"encoding/json"
 	"log"
@@ -10,6 +11,7 @@ import (
 	"go.temporal.io/sdk/client"
 )
 
+// GetWorkflowStatusHandler handles the retrieval of a workflow's status by its ID and run ID.
 func GetWorkflowStatusHandler(temporalClient client.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		workflowID := r.URL.Query().Get("workflowID")
@@ -33,11 +35,10 @@ func GetWorkflowStatusHandler(temporalClient client.Client) http.HandlerFunc {
 }
 
 type StartConfigRequest struct {
-	RQLQuery     string            `json:"rql_query"`
-	ConfigParams map[string]string `json:"config_params"`
+	RQLQuery             string                      `json:"rql_query"`
+	DittoProtocolMessage models.DittoProtocolMessage `json:"ditto_protocol_message"`
 }
 
-// Returns a handler function that can be registered with http.HandleFunc
 func StartMassDeviceConfigHandler(temporalClient client.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -55,8 +56,8 @@ func StartMassDeviceConfigHandler(temporalClient client.Client) http.HandlerFunc
 		}
 
 		params := workflow.ConfigWorkflowParams{
-			RQLQuery:     req.RQLQuery,
-			ConfigParams: req.ConfigParams,
+			RQLQuery:             req.RQLQuery,
+			DittoProtocolMessage: req.DittoProtocolMessage,
 		}
 		options := client.StartWorkflowOptions{
 			TaskQueue: config.TaskQueue,

@@ -8,8 +8,8 @@ import (
 )
 
 type ConfigWorkflowParams struct {
-	RQLQuery     string
-	ConfigParams map[string]string
+	RQLQuery             string
+	DittoProtocolMessage models.DittoProtocolMessage
 }
 
 func MassDeviceConfigWorkflow(ctx workflow.Context, params ConfigWorkflowParams) error {
@@ -20,15 +20,22 @@ func MassDeviceConfigWorkflow(ctx workflow.Context, params ConfigWorkflowParams)
 
 	// Fetch devices from Ditto
 	var devices []models.Device
-	// Use an activity that actually fetches devices, e.g., FetchDevicesActivity
 	if err := workflow.ExecuteActivity(ctx, "FetchDevicesFromDitto", params.RQLQuery).Get(ctx, &devices); err != nil {
 		return err
 	}
 
-	// Parallel config of devices
+	// Send Ditto protocol message for each device
 	futures := make([]workflow.Future, len(devices))
 	for i, device := range devices {
-		futures[i] = workflow.ExecuteActivity(ctx, "ConfigureDevice", device, params.ConfigParams)
+		// Pass ThingId and the protocol message to the activity
+		activityParams := struct {
+			ThingId string
+			Message models.DittoProtocolMessage
+		}{
+			ThingId: device.ThingId,
+			Message: params.DittoProtocolMessage,
+		}
+		futures[i] = workflow.ExecuteActivity(ctx, "SendDittoProtocolMessage", activityParams)
 	}
 	for _, f := range futures {
 		if err := f.Get(ctx, nil); err != nil {

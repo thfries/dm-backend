@@ -114,12 +114,10 @@ func TestCreateThing_Integration(t *testing.T) {
 	}
 }
 
-func TestFetchDevicesFromDitto_Integration(t *testing.T) {
+func TestDeleteThing_Integration(t *testing.T) {
 	if os.Getenv("DITTO_INTEGRATION") != "1" {
 		t.Skip("set DITTO_INTEGRATION=1 to run integration tests")
 	}
-
-	setupDittoTestData(t)
 
 	client := &DittoClient{
 		Host:     dittoHost,
@@ -127,22 +125,57 @@ func TestFetchDevicesFromDitto_Integration(t *testing.T) {
 		Password: dittoPassword,
 	}
 
-	rql := `eq(thingId,"org.example:test-thing")`
-	devices, err := client.FetchDevicesFromDitto(rql)
+	// Create a thing to delete
+	namespace := dittoNamespace
+	serialValue := fmt.Sprintf("delete-test-%d", time.Now().UnixNano())
+	thingData := map[string]interface{}{
+		"attributes": map[string]interface{}{
+			"serial": serialValue,
+			"foo":    "bar",
+		},
+	}
+	params := CreateThingParams{
+		Namespace:          namespace,
+		UniqueAttributeKey: "serial",
+		ThingData:          thingData,
+	}
+
+	t.Logf("Creating thing for deletion test with params: %+v", params)
+	thingID, err := client.CreateThing(params)
 	if err != nil {
-		t.Fatalf("FetchDevicesFromDitto failed: %v", err)
+		t.Fatalf("CreateThing failed: %v", err)
 	}
-	if len(devices) == 0 {
-		t.Fatal("expected at least one device, got none")
+	t.Logf("Created thingID: %s", thingID)
+
+	// Delete the thing
+	delParams := DeleteThingParams{ThingID: thingID}
+	t.Logf("Deleting thingID: %s", thingID)
+	err = client.DeleteThing(t.Context(), delParams)
+	if err != nil {
+		t.Fatalf("DeleteThing failed: %v", err)
 	}
-	found := false
-	for _, d := range devices {
-		if d.ThingId == "org.example:test-thing" {
-			found = true
-			break
-		}
+
+	// Try to fetch the deleted thing, should not be found
+	url := fmt.Sprintf("http://%s/api/2/things/%s", dittoHost, thingID)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		t.Fatalf("failed to create GET request: %v", err)
 	}
-	if !found {
-		t.Error("test device not found in Ditto response")
+	req.SetBasicAuth(dittoUsername, dittoPassword)
+	httpClient := &http.Client{Timeout: 5 * time.Second}
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		t.Fatalf("failed to GET thing after deletion: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusNotFound {
+		t.Errorf("expected 404 Not Found after deletion, got status: %d", resp.StatusCode)
+	}
+
+	// Try to delete again, should not fail (idempotent)
+	t.Logf("Deleting thingID again (should be idempotent): %s", thingID)
+	err = client.DeleteThing(t.Context(), delParams)
+	if err != nil {
+		t.Fatalf("DeleteThing (second call) failed: %v", err)
 	}
 }

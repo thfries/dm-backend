@@ -1,0 +1,196 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "title": "Device Management API",
+        "version": "1.0.0",
+        "contact": {}
+    },
+    "paths": {
+        "/api/config/start": {
+            "post": {
+                "description": "Starts a Temporal workflow that fetches devices using an RQL query and sends a Ditto protocol message to each device.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "config"
+                ],
+                "summary": "Start a mass device configuration workflow",
+                "parameters": [
+                    {
+                        "description": "Configuration request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.StartConfigRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Workflow started",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "405": {
+                        "description": "Method Not Allowed",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to start workflow",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/sites/create": {
+            "post": {
+                "description": "Accepts a JSON array of sites and starts a workflow for each",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "sites"
+                ],
+                "summary": "Start CreateSite workflows for a list of sites",
+                "parameters": [
+                    {
+                        "description": "List of sites",
+                        "name": "sites",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/workflow.CreateSiteParams"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Workflows started",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid JSON input",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to start workflow",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "api.StartConfigRequest": {
+            "type": "object",
+            "properties": {
+                "ditto_protocol_message": {
+                    "$ref": "#/definitions/models.DittoProtocolMessage"
+                },
+                "rql_query": {
+                    "type": "string"
+                }
+            },
+            "example": {
+                "rql_query": "eq(attributes/type,\"gateway\")",
+                "ditto_protocol_message": {
+                    "topic": "<namespace>/<name>/things/twin/commands/modify",
+                    "path": "/features/MyFeature",
+                    "value": {
+                        "properties": {
+                            "status": "active"
+                        }
+                    }
+                }
+            }
+        },
+        "models.DittoProtocolMessage": {
+            "type": "object",
+            "properties": {
+                "headers": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "path": {
+                    "type": "string"
+                },
+                "topic": {
+                    "type": "string"
+                },
+                "value": {}
+            }
+        },
+        "workflow.CreateSiteParams": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "host": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "string"
+                },
+                "siteName": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            },
+            "example": [
+                {
+                    "siteName": "site1",
+                    "host": "mqtt.example.com",
+                    "port": "1883",
+                    "username": "user1",
+                    "password": "pass1",
+                    "description": "Main gateway for site 1"
+                },
+                {
+                    "siteName": "site2",
+                    "host": "mqtt.example.com",
+                    "port": "1884",
+                    "username": "user2",
+                    "password": "pass2",
+                    "description": "Backup gateway for site 2"
+                }
+            ]
+        }
+    }
+}

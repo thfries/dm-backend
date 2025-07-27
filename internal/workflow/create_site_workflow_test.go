@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"dm-backend/internal/activities"
+	"dm-backend/internal/models"
 	"dm-backend/internal/workflow"
 
 	"github.com/stretchr/testify/require"
@@ -44,12 +45,14 @@ func TestCreateSiteWorkflow_Success(t *testing.T) {
 	env.RegisterActivity(mockActs.DeleteThing)
 
 	params := workflow.CreateSiteParams{
-		SiteName:    "site1",
-		Host:        "localhost",
-		Port:        "1883",
-		Username:    "user",
-		Password:    "pass",
-		Description: "Test site",
+		Site: models.Site{
+			SiteName:    "site1",
+			Host:        "localhost",
+			Port:        "1883",
+			Username:    "user",
+			Password:    "pass",
+			Description: "Test site",
+		},
 	}
 
 	env.ExecuteWorkflow(workflow.CreateSiteWorkflow, params)
@@ -67,12 +70,14 @@ func TestCreateSiteWorkflow_CreateThingFails(t *testing.T) {
 	env.RegisterActivity(mockActs.DeleteThing)
 
 	params := workflow.CreateSiteParams{
-		SiteName:    "site1",
-		Host:        "localhost",
-		Port:        "1883",
-		Username:    "user",
-		Password:    "pass",
-		Description: "Test site",
+		Site: models.Site{
+			SiteName:    "site1",
+			Host:        "localhost",
+			Port:        "1883",
+			Username:    "user",
+			Password:    "pass",
+			Description: "Test site",
+		},
 	}
 
 	env.ExecuteWorkflow(workflow.CreateSiteWorkflow, params)
@@ -91,12 +96,14 @@ func TestCreateSiteWorkflow_CreateConnectionFailsWithCompensation(t *testing.T) 
 	env.RegisterActivity(mockActs.DeleteThing)
 
 	params := workflow.CreateSiteParams{
-		SiteName:    "site1",
-		Host:        "localhost",
-		Port:        "1883",
-		Username:    "user",
-		Password:    "pass",
-		Description: "Test site",
+		Site: models.Site{
+			SiteName:    "site1",
+			Host:        "localhost",
+			Port:        "1883",
+			Username:    "user",
+			Password:    "pass",
+			Description: "Test site",
+		},
 	}
 
 	env.ExecuteWorkflow(workflow.CreateSiteWorkflow, params)

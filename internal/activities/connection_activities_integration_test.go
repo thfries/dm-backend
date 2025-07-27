@@ -91,9 +91,9 @@ func TestCreateConnection_Integration(t *testing.T) {
 	defer cleanupDittoConnection(t, dittoHost, username, password, testConnectionName)
 
 	client := &DittoClient{
-		Host:     dittoHost,
-		Username: username,
-		Password: password,
+		Host:           dittoHost,
+		DevopsUsername: username,
+		DevopsPassword: password,
 	}
 
 	params := CreateConnectionParams{
@@ -143,9 +143,9 @@ func TestGetConnectionStatus_Integration(t *testing.T) {
 
 	// Ensure the connection exists
 	client := &DittoClient{
-		Host:     dittoHost,
-		Username: username,
-		Password: password,
+		Host:           dittoHost,
+		DevopsUsername: username,
+		DevopsPassword: password,
 	}
 
 	params := CreateConnectionParams{
